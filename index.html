@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Question → JSON Generator</title>
+  <style>
+    :root{
+      --bg:#0b1220;
+      --card:#0f1a2e;
+      --muted:#9fb0d0;
+      --text:#e9f0ff;
+      --accent:#5eead4;
+      --accent2:#60a5fa;
+      --danger:#fb7185;
+      --border:rgba(255,255,255,.10);
+      --shadow:0 10px 30px rgba(0,0,0,.35);
+      --radius:18px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    }
+
+    *{box-sizing:border-box}
+
+    body{
+      margin:0;
+      font-family:var(--sans);
+      background: radial-gradient(1200px 600px at 85% -10%, rgba(96,165,250,.25), transparent 60%),
+                  radial-gradient(900px 500px at 15% 0%, rgba(94,234,212,.18), transparent 55%),
+                  var(--bg);
+      color:var(--text);
+      line-height:1.5;
+      direction:ltr;
+      text-align:left;
+    }
+
+    .wrap{max-width:1100px; margin:28px auto; padding:0 16px;}
+
+    header{
+      display:flex;
+      gap:14px;
+      align-items:flex-start;
+      justify-content:space-between;
+      flex-wrap:wrap;
+    }
+
+    .title{display:flex; flex-direction:column; gap:6px;}
+    h1{font-size:22px; margin:0; letter-spacing:.2px}
+    p.sub{margin:0; color:var(--muted); font-size:14px}
+
+    .grid{display:grid; grid-template-columns: 1.05fr .95fr; gap:16px; margin-top:16px;}
+    @media (max-width: 980px){ .grid{grid-template-columns:1fr;}}
+
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.06), transparent 35%),
+                  var(--card);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+
+    .card h2{font-size:16px; margin:0; padding:14px 16px; border-bottom:1px solid var(--border)}
+    .card .content{padding:14px 16px;}
+
+    label{display:block; font-size:13px; color:var(--muted); margin:12px 0 6px}
+
+    input, textarea, select{
+      width:100%;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      color:var(--text);
+      outline:none;
+      transition: .15s border-color, .15s box-shadow;
+      direction:ltr;
+      text-align:left;
+    }
+
+    textarea{
+      min-height:160px;
+      resize:vertical;
+      font-family:var(--mono);
+      white-space:pre;
+      tab-size:2;
+      line-height:1.55;
+    }
+
+    input:focus, textarea:focus, select:focus{
+      border-color: rgba(94,234,212,.55);
+      box-shadow: 0 0 0 4px rgba(94,234,212,.14)
+    }
+
+    .row{display:grid; grid-template-columns: 1fr 1fr; gap:12px}
+    @media (max-width: 520px){ .row{grid-template-columns:1fr;}}
+
+    .choices{display:grid; gap:10px; margin-top:6px}
+
+    .choice{
+      display:grid;
+      grid-template-columns: 28px 1fr;
+      gap:10px;
+      align-items:center;
+      padding:10px 10px;
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:14px;
+      background: rgba(255,255,255,.04);
+    }
+
+    .choice input[type="radio"]{width:18px; height:18px; accent-color: var(--accent);}
+
+    .toolbar{display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:14px}
+
+    button{
+      border:0;
+      cursor:pointer;
+      padding:10px 12px;
+      border-radius:14px;
+      font-weight:600;
+      color:#06221d;
+      background: linear-gradient(180deg, rgba(255,255,255,.2), rgba(255,255,255,0)), var(--accent);
+      box-shadow: 0 10px 18px rgba(94,234,212,.18);
+    }
+
+    button.secondary{
+      color:var(--text);
+      background: rgba(255,255,255,.08);
+      box-shadow:none;
+      border:1px solid rgba(255,255,255,.12);
+    }
+
+    button.danger{
+      color:#2a0b10;
+      background: linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,0)), var(--danger);
+      box-shadow: 0 10px 18px rgba(251,113,133,.18);
+    }
+
+    .hint{font-size:12px; color:var(--muted)}
+
+    pre{
+      margin:0;
+      padding:14px 16px;
+      background: rgba(0,0,0,.28);
+      border-top:1px solid var(--border);
+      font-family: var(--mono);
+      font-size:12.5px;
+      line-height:1.6;
+      overflow:auto;
+      white-space:pre;
+      direction:ltr;
+      text-align:left;
+    }
+
+    .status{font-size:12px; color:var(--muted)}
+    .status b{color:var(--accent)}
+
+    .pill{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      padding:8px 10px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      color:var(--muted);
+      font-size:12px;
+    }
+
+    .pill span.dot{width:8px;height:8px;border-radius:999px;background:var(--accent2);display:inline-block}
+    .kbd{font-family:var(--mono); font-size:12px; padding:2px 6px; border-radius:8px; border:1px solid rgba(255,255,255,.16); background: rgba(255,255,255,.06)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="title">
+        <h1>Interactive MCQ → JSON Generator (LTR)</h1>
+        <p class="sub">Fill the fields and the JSON will update instantly below. (Copy with one click)</p>
+      </div>
+      <div class="pill" title="JSON updates as you type">
+        <span class="dot"></span>
+        Live update
+      </div>
+    </header>
+
+    <div class="grid">
+      <!-- Input Card -->
+      <section class="card" aria-label="Form">
+        <h2>Input</h2>
+        <div class="content">
+          <div class="row">
+            <div>
+              <label for="studentName">Student Name</label>
+              <input id="studentName" type="text" placeholder="e.g., Abdalmohaymen Alesmaeel" />
+            </div>
+            <div>
+              <label for="level">Level (1–10)</label>
+              <select id="level">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+                <option value="7" selected>7</option>
+                <option value="8">8</option>
+                <option value="9">9</option>
+                <option value="10">10</option>
+              </select>
+            </div>
+          </div>
+
+          <label for="question">Question Text (you can include Java code)</label>
+          <textarea id="question" placeholder="Type the question here...\n\nExample:\nint x = 1;\nfor (...) { ... }"></textarea>
+
+          <label>Choices (select the correct answer)</label>
+          <div class="choices" id="choices"></div>
+
+          <div class="toolbar">
+            <button id="copyBtn" type="button">Copy JSON</button>
+            <button id="resetBtn" class="danger" type="button">Reset</button>
+            <span class="hint">Tip: After selecting output text you can use <span class="kbd">Ctrl</span> + <span class="kbd">C</span>.</span>
+          </div>
+          <div class="status" id="status" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <!-- Output Card -->
+      <section class="card" aria-label="JSON Output">
+        <h2>Output JSON</h2>
+        <div class="content">
+          <div class="status">Current correct answer: <b id="answerLabel">A</b> (answerIndex: <b id="answerIndex">0</b>)</div>
+          <p class="sub" style="margin-top:8px">Pretty-printed JSON (2-space indentation).</p>
+        </div>
+        <pre id="output" tabindex="0"></pre>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const els = {
+      studentName: document.getElementById('studentName'),
+      level: document.getElementById('level'),
+      question: document.getElementById('question'),
+      choicesWrap: document.getElementById('choices'),
+      output: document.getElementById('output'),
+      answerLabel: document.getElementById('answerLabel'),
+      answerIndex: document.getElementById('answerIndex'),
+      status: document.getElementById('status'),
+      copyBtn: document.getElementById('copyBtn'),
+      resetBtn: document.getElementById('resetBtn')
+    };
+
+    const LETTERS = ['A','B','C','D'];
+
+    function buildChoices() {
+      els.choicesWrap.innerHTML = '';
+      for (let i = 0; i < 4; i++) {
+        const row = document.createElement('div');
+        row.className = 'choice';
+        row.innerHTML = `
+          <input type="radio" name="answer" value="${i}" ${i===0?'checked':''} aria-label="Correct answer ${LETTERS[i]}" />
+          <input type="text" data-choice="${i}" placeholder="Choice ${LETTERS[i]}" />
+        `;
+        els.choicesWrap.appendChild(row);
+      }
+    }
+
+    function getSelectedAnswerIndex() {
+      const checked = document.querySelector('input[name="answer"]:checked');
+      return checked ? parseInt(checked.value, 10) : 0;
+    }
+
+    function sanitizeChoices(arr) {
+      const out = new Array(4).fill('');
+      for (let i = 0; i < 4; i++) out[i] = (arr[i] ?? '').toString();
+      return out;
+    }
+
+    function update() {
+      const choiceInputs = [...document.querySelectorAll('input[data-choice]')];
+      const choices = sanitizeChoices(choiceInputs.map(i => i.value.trim()));
+      const answerIndex = getSelectedAnswerIndex();
+
+      const obj = {
+        studentName: (els.studentName.value || '').trim(),
+        level: parseInt(els.level.value, 10),
+        question: (els.question.value || '').trim(),
+        choices,
+        answerIndex
+      };
+
+      els.answerIndex.textContent = String(answerIndex);
+      els.answerLabel.textContent = LETTERS[answerIndex] ?? 'A';
+      els.output.textContent = JSON.stringify(obj, null, 2);
+    }
+
+    async function copyJSON() {
+      try {
+        await navigator.clipboard.writeText(els.output.textContent);
+        setStatus('Copied to clipboard ✅');
+      } catch {
+        const range = document.createRange();
+        range.selectNodeContents(els.output);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        document.execCommand('copy');
+        sel.removeAllRanges();
+        setStatus('Selected output text — press Ctrl+C ✅');
+      }
+    }
+
+    function resetAll() {
+      els.studentName.value = '';
+      els.level.value = '7';
+      els.question.value = '';
+
+      const radios = [...document.querySelectorAll('input[name="answer"]')];
+      radios.forEach(r => r.checked = false);
+      radios[0].checked = true;
+
+      const choiceInputs = [...document.querySelectorAll('input[data-choice]')];
+      choiceInputs.forEach(i => i.value = '');
+
+      update();
+      setStatus('Reset done ✅');
+    }
+
+    let statusTimer;
+    function setStatus(msg) {
+      els.status.textContent = msg;
+      clearTimeout(statusTimer);
+      statusTimer = setTimeout(() => { els.status.textContent = ''; }, 3500);
+    }
+
+    // Init
+    buildChoices();
+
+    // Prefill example
+    els.studentName.value = 'Abdalmohaymen Alesmaeel';
+    els.question.value = "What is the output of the following Java code?\n\nint result = 0;\nfor (int i = 1; i <= 5; i++) {\n    if (i == 4) {\n        break;\n    }\n    result += i;\n}\nSystem.out.println(result);";
+    const demo = ['6','10','7','15'];
+    [...document.querySelectorAll('input[data-choice]')].forEach((i, idx) => i.value = demo[idx]);
+    update();
+
+    // Live update
+    els.studentName.addEventListener('input', update);
+    els.level.addEventListener('change', update);
+    els.question.addEventListener('input', update);
+    document.addEventListener('input', (e) => {
+      if (e.target.matches('input[data-choice]')) update();
+    });
+    document.addEventListener('change', (e) => {
+      if (e.target.matches('input[name="answer"]')) update();
+    });
+
+    // Buttons
+    els.copyBtn.addEventListener('click', copyJSON);
+    els.resetBtn.addEventListener('click', resetAll);
+  </script>
+</body>
+</html>
